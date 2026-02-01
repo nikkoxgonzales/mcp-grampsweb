@@ -582,9 +582,23 @@ export const createTools = {
     name: "gramps_create_person",
     description:
       "Create a new person record. " +
-      "REQUIRED: primary_name with first_name or surname. " +
+      "REQUIRED: primary_name with first_name and surname(s). " +
       "RETURNS: handle (for linking) and gramps_id (display ID). " +
-      "NEXT STEP: Use handle with gramps_create_family to add relationships.",
+      "NEXT STEP: Use handle with gramps_create_family to add relationships.\n\n" +
+      "IMPORTANT - Filipino/Spanish naming convention:\n" +
+      "When user says 'Name Surname y MothersSurname', the 'y' is a MARKER WORD (not stored).\n" +
+      "Example: 'John Smith y Doe' means:\n" +
+      "  - first_name: 'John'\n" +
+      "  - Father's surname: 'Smith' (primary: true)\n" +
+      "  - Mother's surname: 'Doe' (primary: false)\n" +
+      "  - Displays as: 'John Doe Smith'\n" +
+      "  - The 'y' is NOT stored - it just helps identify which surname is which.\n" +
+      "Example: 'Maria Clara Santos y Reyes' means:\n" +
+      "  - first_name: 'Maria Clara'\n" +
+      "  - Father's surname: 'Santos' (primary: true)\n" +
+      "  - Mother's surname: 'Reyes' (primary: false)\n" +
+      "  - Displays as: 'Maria Clara Reyes Santos'\n" +
+      "Use surname_list with two entries for this pattern.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -594,29 +608,50 @@ export const createTools = {
         },
         primary_name: {
           type: "object",
-          description: "Primary name",
+          description:
+            "Primary name. For Filipino/Spanish names with 'y' marker (e.g., 'John Smith y Doe'), " +
+            "use surname_list with father's surname (primary:true) and mother's surname (primary:false). " +
+            "The 'y' is just a marker - do NOT store it.",
           properties: {
-            first_name: { type: "string" },
-            nickname: { type: "string", description: "Nickname (also known as call name)" },
-            surname: { type: "string", description: "Simple surname" },
+            first_name: {
+              type: "string",
+              description: "First name(s). Can include middle names (e.g., 'John Michael', 'Maria Clara')",
+            },
+            nickname: {
+              type: "string",
+              description: "Nickname/alias (e.g., 'Johnny', 'Mariclar')",
+            },
+            surname: {
+              type: "string",
+              description: "Simple single surname. Use surname_list instead for multiple surnames.",
+            },
             surname_list: {
               type: "array",
-              description: "Multiple surnames with origin types (use instead of surname for complex names). Supports Filipino naming convention with connector 'y' for mother's maiden name.",
+              description:
+                "Use for multiple surnames (Filipino/Spanish naming). " +
+                "When user says 'Name FatherSurname y MotherSurname', create TWO entries: " +
+                "(1) Father's surname with primary:true, (2) Mother's surname with primary:false. " +
+                "Do NOT store the 'y' - it's just a verbal marker.",
               items: {
                 type: "object",
                 properties: {
-                  surname: { type: "string", description: "The surname" },
-                  prefix: { type: "string", description: "Prefix (e.g., 'von', 'de')" },
-                  connector: { type: "string", description: "Connector between surnames (e.g., 'y' for Filipino names like 'Gonzales y Villacorta')" },
-                  primary: { type: "boolean", description: "Is this the primary surname?" },
-                  origintype: { type: "string", description: "Origin: Inherited, Married, Taken, Given" },
+                  surname: { type: "string", description: "The surname value" },
+                  prefix: { type: "string", description: "Prefix like 'von', 'de', 'dela'" },
+                  primary: {
+                    type: "boolean",
+                    description: "true for father's/main surname, false for mother's maiden surname",
+                  },
+                  origintype: {
+                    type: "string",
+                    description: "Origin: 'Inherited' (from parent), 'Married', 'Taken', 'Given'",
+                  },
                 },
                 required: ["surname"],
               },
             },
-            suffix: { type: "string" },
-            title: { type: "string" },
-            type: { type: "string", description: "Name type: Birth Name, Married Name, Also Known As" },
+            suffix: { type: "string", description: "Suffix like 'Jr.', 'Sr.', 'III'" },
+            title: { type: "string", description: "Title like 'Dr.', 'Atty.'" },
+            type: { type: "string", description: "Name type: 'Birth Name', 'Married Name', 'Also Known As'" },
           },
         },
         gender: {
