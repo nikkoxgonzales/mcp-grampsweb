@@ -61,18 +61,15 @@ class AuthManager {
 
     const url = `${this.config.apiUrl}/api${API_ENDPOINTS.TOKEN}`;
 
-    // Gramps Web expects form-urlencoded data for token endpoint
-    const body = new URLSearchParams({
-      username: this.config.username,
-      password: this.config.password,
-    });
-
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/json",
       },
-      body: body.toString(),
+      body: JSON.stringify({
+        username: this.config.username,
+        password: this.config.password,
+      }),
     });
 
     if (!response.ok) {
