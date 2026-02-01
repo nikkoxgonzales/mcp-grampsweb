@@ -59,11 +59,13 @@ export async function grampsTreeStats(): Promise<string> {
   try {
     const metadata = await grampsClient.get<Record<string, unknown>>(API_ENDPOINTS.METADATA);
 
-    // Try to extract counts from metadata
-    for (const type of entityTypes) {
-      const countKey = `${type}_count`;
-      if (typeof metadata[countKey] === "number") {
-        stats[type as keyof TreeStats] = metadata[countKey] as number;
+    // Extract counts from metadata.object_counts
+    const objectCounts = metadata.object_counts as Record<string, number> | undefined;
+    if (objectCounts) {
+      for (const type of entityTypes) {
+        if (typeof objectCounts[type] === "number") {
+          stats[type as keyof TreeStats] = objectCounts[type];
+        }
       }
     }
   } catch {
