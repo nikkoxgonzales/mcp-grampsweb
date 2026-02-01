@@ -270,6 +270,13 @@ export interface TreeStats {
   notes: number;
 }
 
+// Tag entity
+export interface Tag extends GrampsEntity {
+  name?: string;
+  color?: string;
+  priority?: number;
+}
+
 // API error response
 export interface APIErrorResponse {
   detail?: string;

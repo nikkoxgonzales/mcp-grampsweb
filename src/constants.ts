@@ -28,6 +28,9 @@ export const API_ENDPOINTS = {
 
   // Recent changes
   RECENT: "/recent/",
+
+  // Tags
+  TAGS: "/tags/",
 } as const;
 
 export type APIEndpoint = (typeof API_ENDPOINTS)[keyof typeof API_ENDPOINTS];
@@ -51,6 +54,8 @@ export const ENTITY_ENDPOINT_MAP: Record<string, string> = {
   media: API_ENDPOINTS.MEDIA,
   notes: API_ENDPOINTS.NOTES,
   note: API_ENDPOINTS.NOTES,
+  tags: API_ENDPOINTS.TAGS,
+  tag: API_ENDPOINTS.TAGS,
 };
 
 // Token expiration buffer (30 seconds before actual expiry)

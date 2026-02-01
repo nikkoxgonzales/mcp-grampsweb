@@ -3,7 +3,7 @@
  */
 
 export interface ToolResponseOptions {
-  status: "success" | "empty" | "error";
+  status: "success" | "empty" | "error" | "partial";
   summary: string;
   data?: Record<string, unknown>;
   details?: string;

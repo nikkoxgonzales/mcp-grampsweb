@@ -600,12 +600,13 @@ export const createTools = {
             surname: { type: "string", description: "Simple surname" },
             surname_list: {
               type: "array",
-              description: "Multiple surnames with origin types (use instead of surname for complex names)",
+              description: "Multiple surnames with origin types (use instead of surname for complex names). Supports Filipino naming convention with connector 'y' for mother's maiden name.",
               items: {
                 type: "object",
                 properties: {
                   surname: { type: "string", description: "The surname" },
                   prefix: { type: "string", description: "Prefix (e.g., 'von', 'de')" },
+                  connector: { type: "string", description: "Connector between surnames (e.g., 'y' for Filipino names like 'Gonzales y Villacorta')" },
                   primary: { type: "boolean", description: "Is this the primary surname?" },
                   origintype: { type: "string", description: "Origin: Inherited, Married, Taken, Given" },
                 },
