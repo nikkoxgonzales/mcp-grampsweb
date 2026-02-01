@@ -1,0 +1,48 @@
+{
+  "name": "mcp-grampsweb",
+  "version": "1.0.0",
+  "description": "MCP server for Gramps Web genealogy API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "mcp-grampsweb": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "gramps",
+    "grampsweb",
+    "genealogy",
+    "family-tree",
+    "anthropic",
+    "claude"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/mcp-grampsweb.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.0.0"
+  }
+}
