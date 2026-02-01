@@ -89,9 +89,13 @@ export async function grampsUpdatePerson(
     change: existing.change,
   };
 
-  // Handle primary_name update
+  // Handle primary_name update - merge with existing to preserve unspecified fields
   if (updateFields.primary_name) {
-    const nameData = { ...updateFields.primary_name } as Record<string, unknown>;
+    const existingName = (existing.primary_name || {}) as Record<string, unknown>;
+    const nameData = {
+      ...existingName, // Keep existing fields
+      ...updateFields.primary_name, // Override with provided fields
+    } as Record<string, unknown>;
     // Map nickname to call_name (API field name)
     if (nameData.nickname) {
       nameData.call_name = nameData.nickname;
@@ -103,6 +107,8 @@ export async function grampsUpdatePerson(
   }
 
   // Handle alternate_names update
+  // Note: alternate_names replaces the entire list (not merged per-name)
+  // This is intentional - use the full list when updating alternate names
   if (updateFields.alternate_names) {
     updatedPerson.alternate_names = updateFields.alternate_names.map((n) => {
       const nameData = { ...n } as Record<string, unknown>;
@@ -341,6 +347,8 @@ export const updateTools = {
       "Update an existing person record. " +
       "REQUIRED: handle of person to update. " +
       "OPTIONAL: Any field to update (name, gender, add events, etc.). " +
+      "NAME UPDATES: When updating primary_name, only provide the fields you want to change - " +
+      "other name fields (first_name, surname, etc.) are preserved automatically. " +
       "SHORTCUTS: add_event_ref (append event), add_note (append note). " +
       "RETURNS: Updated person details.",
     inputSchema: {
@@ -352,13 +360,16 @@ export const updateTools = {
         },
         primary_name: {
           type: "object",
-          description: "Update primary name",
+          description:
+            "Update primary name fields. Only include fields you want to change - " +
+            "existing fields are preserved. Example: {nickname: 'Nicks'} only updates " +
+            "nickname, keeping first_name and surname intact.",
           properties: {
-            first_name: { type: "string" },
-            surname: { type: "string" },
-            nickname: { type: "string", description: "Nickname (also known as call name)" },
-            suffix: { type: "string" },
-            title: { type: "string" },
+            first_name: { type: "string", description: "Update first name" },
+            surname: { type: "string", description: "Update surname" },
+            nickname: { type: "string", description: "Update nickname (also known as call name)" },
+            suffix: { type: "string", description: "Update suffix" },
+            title: { type: "string", description: "Update title" },
           },
         },
         gender: {
