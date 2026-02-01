@@ -104,7 +104,7 @@ Create a person named John Smith, male gender
 
 ```bash
 # Clone the repository
-git clone https://github.com/username/mcp-grampsweb.git
+git clone https://github.com/nikkoxgonzales/mcp-grampsweb.git
 cd mcp-grampsweb
 
 # Install dependencies

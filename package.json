@@ -34,7 +34,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/username/mcp-grampsweb.git"
+    "url": "https://github.com/nikkoxgonzales/mcp-grampsweb.git"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
