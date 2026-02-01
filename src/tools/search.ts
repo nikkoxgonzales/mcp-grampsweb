@@ -30,7 +30,7 @@ export async function grampsSearch(params: z.infer<typeof searchSchema>): Promis
   }
 
   const response = await grampsClient.get<GrampsEntity[]>(endpoint, {
-    gramps: query,
+    gql: query,
     page,
     pagesize,
   });
@@ -40,7 +40,7 @@ export async function grampsSearch(params: z.infer<typeof searchSchema>): Promis
     return formatToolResponse({
       status: "empty",
       summary: MESSAGES.NO_RESULTS(entity_type, query),
-      details: "GQL syntax examples: surname=Smith, gender=M, birth.date.year>1900",
+      details: "GQL syntax: property operator value. Examples: gender = 1, primary_name.first_name ~ John",
     });
   }
 
@@ -148,8 +148,8 @@ export const searchTools = {
     description:
       "Search using GQL (Gramps Query Language) for structured queries. " +
       "USE FOR: Finding entities by attributes (name, date, gender, etc.). " +
-      "SYNTAX: field=value, AND/OR, comparisons (>, <, =). " +
-      "EXAMPLES: surname=Smith, gender=M AND birth.date.year>1900. " +
+      "SYNTAX: property operator value, combined with 'and'/'or'. " +
+      "EXAMPLES: primary_name.surname_list[0].surname ~ Smith, gender = 1 (male=1, female=0). " +
       "RETURNS: List of handles - use handles with gramps_get for full details.",
     inputSchema: {
       type: "object" as const,

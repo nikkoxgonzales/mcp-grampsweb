@@ -42,7 +42,7 @@ const researchPerson: GrampsPrompt = {
 ## Step 1: Find the Person
 ${args?.name ? `Search for "${args.name}" using:` : "First, search for the person:"}
 - \`gramps_find\` - Full-text search if you only know the name
-- \`gramps_search\` with entity_type="people" - For structured queries like \`surname=${args?.name?.split(" ").pop() || "Smith"}\`
+- \`gramps_search\` with entity_type="people" - For structured GQL queries like \`primary_name.first_name ~ ${args?.name?.split(" ")[0] || "John"}\`
 
 ## Step 2: Get Full Details
 Once you have the person's handle from search results:
@@ -178,46 +178,44 @@ GQL is used with the \`gramps_search\` tool for structured queries.
 
 ## Basic Syntax
 \`\`\`
-field=value           # Exact match
-field~value           # Contains (partial match)
-field>value           # Greater than
-field<value           # Less than
+property = value      # Exact match
+property ~ value      # Contains (partial match)
+property > value      # Greater than
+property < value      # Less than
 \`\`\`
 
 ## Logical Operators
 \`\`\`
-query1 AND query2     # Both conditions
-query1 OR query2      # Either condition
-NOT query             # Negation
+query1 and query2     # Both conditions (lowercase!)
+query1 or query2      # Either condition
 \`\`\`
 
 ## Common Person Queries
 \`\`\`
-surname=Smith                      # Exact surname
-surname~Sm                         # Surname contains "Sm"
-gender=M                           # Males only (M/F/U)
-birth.date.year>1900               # Born after 1900
-death.date.year<1950               # Died before 1950
-surname=Smith AND gender=F         # Female Smiths
+primary_name.surname_list[0].surname ~ Smith    # Surname contains Smith
+primary_name.first_name = John                  # First name is John
+gender = 1                                      # Males (0=female, 1=male, 2=unknown)
+gender = 0                                      # Females
+media_list.length > 0                           # Has media attached
 \`\`\`
 
 ## Common Event Queries
 \`\`\`
-type=Birth                         # Birth events
-type=Marriage                      # Marriage events
-date.year=1920                     # Events in 1920
+type.string = Birth                # Birth events
+type.string = Marriage             # Marriage events
+date.dateval[2] > 1900             # Year after 1900 (dateval = [day, month, year])
 \`\`\`
 
 ## Common Place Queries
 \`\`\`
-name~London                        # Places containing "London"
-place_type=City                    # Cities only
+name.value ~ London                # Name contains "London"
+place_type.string = City           # Cities only
 \`\`\`
 
 ## Example Usage
 \`\`\`json
 {
-  "query": "surname=Smith AND birth.date.year>1850",
+  "query": "gender = 1 and primary_name.first_name ~ John",
   "entity_type": "people",
   "pagesize": 20
 }
