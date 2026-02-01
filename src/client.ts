@@ -102,6 +102,14 @@ class GrampsClient {
       // Handle empty responses
       const text = await response.text();
       if (!text) {
+        // For POST/PUT requests, empty response is unexpected - API should return created/updated entity
+        if (method === "POST" || method === "PUT") {
+          throw new GrampsAPIError(
+            `${method} request returned empty response. Expected entity with handle.`,
+            response.status,
+            endpoint
+          );
+        }
         return {} as T;
       }
 

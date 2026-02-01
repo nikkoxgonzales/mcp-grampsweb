@@ -26,8 +26,30 @@ export function formatPersonName(name?: PersonName): string {
   const parts: string[] = [];
 
   if (name.title) parts.push(name.title);
-  if (name.first_name) parts.push(name.first_name);
-  if (name.surname) parts.push(name.surname);
+
+  // Use call_name (nickname) if available, otherwise first_name
+  if (name.call_name) {
+    parts.push(name.call_name);
+  } else if (name.first_name) {
+    parts.push(name.first_name);
+  }
+
+  // Handle surname - prefer surname_list if available
+  if (name.surname_list && name.surname_list.length > 0) {
+    // Get primary surname or first surname
+    const primarySurname = name.surname_list.find((s) => s.primary) || name.surname_list[0];
+    if (primarySurname) {
+      const surnameParts: string[] = [];
+      if (primarySurname.prefix) surnameParts.push(primarySurname.prefix);
+      if (primarySurname.surname) surnameParts.push(primarySurname.surname);
+      if (surnameParts.length > 0) {
+        parts.push(surnameParts.join(" "));
+      }
+    }
+  } else if (name.surname) {
+    parts.push(name.surname);
+  }
+
   if (name.suffix) parts.push(name.suffix);
 
   return parts.length > 0 ? parts.join(" ") : "Unknown";

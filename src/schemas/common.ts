@@ -32,14 +32,26 @@ export const dateSchema = z.object({
   newyear: z.number().optional(),
 }).optional();
 
+// Surname schema for surname_list
+export const surnameSchema = z.object({
+  _class: z.literal("Surname").optional(),
+  surname: z.string(),
+  prefix: z.string().optional(),
+  primary: z.boolean().optional(),
+  origintype: z.string().optional().describe("Origin type: Inherited, Married, Taken, Given, etc."),
+  connector: z.string().optional(),
+});
+
 // Person name schema
 export const personNameSchema = z.object({
   _class: z.literal("Name").optional(),
   first_name: z.string().optional(),
-  surname: z.string().optional(),
+  call_name: z.string().optional().describe("Nickname or call name"),
+  surname: z.string().optional().describe("Simple surname (use surname_list for multiple)"),
+  surname_list: z.array(surnameSchema).optional().describe("List of surnames with origin types"),
   suffix: z.string().optional(),
   title: z.string().optional(),
-  type: z.string().optional(),
+  type: z.string().optional().describe("Name type: Birth Name, Married Name, Also Known As, etc."),
   primary: z.boolean().optional(),
 });
 

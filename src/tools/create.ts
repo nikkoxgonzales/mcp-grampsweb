@@ -33,6 +33,26 @@ function mapGender(gender?: string): number | undefined {
   }
 }
 
+// Map a name object with proper class markers for surnames
+function mapNameWithClasses(name: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!name) return undefined;
+
+  const mapped: Record<string, unknown> = {
+    _class: "Name",
+    ...name,
+  };
+
+  // Map surname_list items with Surname class
+  if (name.surname_list && Array.isArray(name.surname_list)) {
+    mapped.surname_list = (name.surname_list as Record<string, unknown>[]).map((s) => ({
+      _class: "Surname",
+      ...s,
+    }));
+  }
+
+  return mapped;
+}
+
 /**
  * Create a person
  */
@@ -45,13 +65,10 @@ export async function grampsCreatePerson(
   const person = {
     _class: "Person",
     gramps_id: validated.gramps_id,
-    primary_name: validated.primary_name
-      ? { _class: "Name", ...validated.primary_name }
-      : undefined,
-    alternate_names: validated.alternate_names?.map((n) => ({
-      _class: "Name",
-      ...n,
-    })),
+    primary_name: mapNameWithClasses(validated.primary_name as Record<string, unknown> | undefined),
+    alternate_names: validated.alternate_names?.map((n) =>
+      mapNameWithClasses(n as Record<string, unknown>)
+    ),
     gender: mapGender(validated.gender),
     event_ref_list: validated.event_ref_list?.map((e) => ({
       _class: "EventRef",
@@ -70,10 +87,20 @@ export async function grampsCreatePerson(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.PEOPLE,
     person
   );
+
+  // API returns an array of change records - extract the first one
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  // Validate that API returned a handle
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating person. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   const genderMap: Record<number, string> = {
     0: "female",
@@ -130,10 +157,24 @@ export async function grampsCreateFamily(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.FAMILIES,
     family
   );
+
+  // API returns an array of change records - find the Family entry
+  let response: GrampsEntity | undefined;
+  if (Array.isArray(rawResponse)) {
+    response = rawResponse.find((r) => r._class === "Family") || rawResponse[0];
+  } else {
+    response = rawResponse;
+  }
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating family. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   const members: string[] = [];
   if (validated.father_handle) members.push("father");
@@ -183,10 +224,18 @@ export async function grampsCreateEvent(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.EVENTS,
     event
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating event. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   return formatCreatedEntity(
     "event",
@@ -233,10 +282,18 @@ export async function grampsCreatePlace(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.PLACES,
     place
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating place. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   const placeName = validated.name?.value || validated.title || response.gramps_id;
 
@@ -279,10 +336,18 @@ export async function grampsCreateSource(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.SOURCES,
     source
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating source. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   return formatCreatedEntity(
     "source",
@@ -319,10 +384,18 @@ export async function grampsCreateCitation(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.CITATIONS,
     citation
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating citation. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   const confidenceMap: Record<number, string> = {
     0: "Very Low",
@@ -364,10 +437,18 @@ export async function grampsCreateNote(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.NOTES,
     note
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating note. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   const preview = validated.text.length > 50 ? validated.text.substring(0, 50) + "..." : validated.text;
 
@@ -409,10 +490,18 @@ export async function grampsCreateMedia(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.MEDIA,
     media
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating media. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   const displayName = validated.desc || validated.path;
 
@@ -453,10 +542,18 @@ export async function grampsCreateRepository(
     private: validated.private,
   };
 
-  const response = await grampsClient.post<GrampsEntity>(
+  const rawResponse = await grampsClient.post<GrampsEntity | GrampsEntity[]>(
     API_ENDPOINTS.REPOSITORIES,
     repository
   );
+
+  const response = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+  if (!response?.handle) {
+    throw new Error(
+      `API did not return entity handle after creating repository. Response: ${JSON.stringify(rawResponse)}`
+    );
+  }
 
   return formatCreatedEntity(
     "repository",
@@ -492,9 +589,25 @@ export const createTools = {
           description: "Primary name",
           properties: {
             first_name: { type: "string" },
-            surname: { type: "string" },
+            call_name: { type: "string", description: "Nickname or call name" },
+            surname: { type: "string", description: "Simple surname" },
+            surname_list: {
+              type: "array",
+              description: "Multiple surnames with origin types (use instead of surname for complex names)",
+              items: {
+                type: "object",
+                properties: {
+                  surname: { type: "string", description: "The surname" },
+                  prefix: { type: "string", description: "Prefix (e.g., 'von', 'de')" },
+                  primary: { type: "boolean", description: "Is this the primary surname?" },
+                  origintype: { type: "string", description: "Origin: Inherited, Married, Taken, Given" },
+                },
+                required: ["surname"],
+              },
+            },
             suffix: { type: "string" },
             title: { type: "string" },
+            type: { type: "string", description: "Name type: Birth Name, Married Name, Also Known As" },
           },
         },
         gender: {

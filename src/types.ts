@@ -33,12 +33,25 @@ export interface GrampsEntity {
   gramps_id: string;
   change?: number;
   private?: boolean;
+  _class?: string;
+}
+
+// Surname structure for surname_list
+export interface Surname {
+  surname?: string;
+  prefix?: string;
+  primary?: boolean;
+  origintype?: string;
+  connector?: string;
+  _class?: string;
 }
 
 // Name structure for persons
 export interface PersonName {
   first_name?: string;
+  call_name?: string;
   surname?: string;
+  surname_list?: Surname[];
   suffix?: string;
   title?: string;
   type?: string;
