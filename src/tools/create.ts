@@ -586,19 +586,24 @@ export const createTools = {
       "RETURNS: handle (for linking) and gramps_id (display ID). " +
       "NEXT STEP: Use handle with gramps_create_family to add relationships.\n\n" +
       "IMPORTANT - Filipino/Spanish naming convention:\n" +
-      "When user says 'Name Surname y MothersSurname', the 'y' is a MARKER WORD (not stored).\n" +
+      "When user says 'Name FatherSurname y MotherSurname', the 'y' is a MARKER WORD (not stored).\n" +
+      "The display order is: FirstName MotherSurname FatherSurname\n" +
+      "In surname_list, put Mother's surname FIRST, Father's surname SECOND.\n\n" +
       "Example: 'John Smith y Doe' means:\n" +
       "  - first_name: 'John'\n" +
-      "  - Father's surname: 'Smith' (primary: true)\n" +
-      "  - Mother's surname: 'Doe' (primary: false)\n" +
-      "  - Displays as: 'John Doe Smith'\n" +
-      "  - The 'y' is NOT stored - it just helps identify which surname is which.\n" +
-      "Example: 'Maria Clara Santos y Reyes' means:\n" +
-      "  - first_name: 'Maria Clara'\n" +
-      "  - Father's surname: 'Santos' (primary: true)\n" +
-      "  - Mother's surname: 'Reyes' (primary: false)\n" +
-      "  - Displays as: 'Maria Clara Reyes Santos'\n" +
-      "Use surname_list with two entries for this pattern.",
+      "  - surname_list: [\n" +
+      "      { surname: 'Doe', primary: false },      // Mother's - FIRST in array\n" +
+      "      { surname: 'Smith', primary: true }      // Father's - SECOND in array\n" +
+      "    ]\n" +
+      "  - Displays as: 'John Doe Smith'\n\n" +
+      "Example: 'Julieta Villacorta y Borlongan' means:\n" +
+      "  - first_name: 'Julieta'\n" +
+      "  - surname_list: [\n" +
+      "      { surname: 'Borlongan', primary: false },  // Mother's - FIRST\n" +
+      "      { surname: 'Villacorta', primary: true }   // Father's - SECOND\n" +
+      "    ]\n" +
+      "  - Displays as: 'Julieta Borlongan Villacorta'\n\n" +
+      "The 'y' is NEVER stored - it only helps identify which surname is which.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -610,8 +615,8 @@ export const createTools = {
           type: "object",
           description:
             "Primary name. For Filipino/Spanish names with 'y' marker (e.g., 'John Smith y Doe'), " +
-            "use surname_list with father's surname (primary:true) and mother's surname (primary:false). " +
-            "The 'y' is just a marker - do NOT store it.",
+            "use surname_list with MOTHER's surname FIRST (primary:false), then FATHER's surname SECOND (primary:true). " +
+            "Array order determines display order. The 'y' is just a marker - do NOT store it.",
           properties: {
             first_name: {
               type: "string",
@@ -628,9 +633,10 @@ export const createTools = {
             surname_list: {
               type: "array",
               description:
-                "Use for multiple surnames (Filipino/Spanish naming). " +
-                "When user says 'Name FatherSurname y MotherSurname', create TWO entries: " +
-                "(1) Father's surname with primary:true, (2) Mother's surname with primary:false. " +
+                "ARRAY ORDER MATTERS for display. For Filipino/Spanish naming: " +
+                "when user says 'Name FatherSurname y MotherSurname', create array as: " +
+                "[{surname: MotherSurname, primary: false}, {surname: FatherSurname, primary: true}]. " +
+                "Mother's surname FIRST in array, Father's surname SECOND. " +
                 "Do NOT store the 'y' - it's just a verbal marker.",
               items: {
                 type: "object",
