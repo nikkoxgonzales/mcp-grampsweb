@@ -23,6 +23,7 @@ The server requires the following environment variables:
 | `GRAMPS_API_URL` | Base URL of your Gramps Web instance (e.g., `https://gramps.example.com`) | Yes |
 | `GRAMPS_USERNAME` | Your Gramps Web username | Yes |
 | `GRAMPS_PASSWORD` | Your Gramps Web password | Yes |
+| `GRAMPS_TREE_ID` | Tree ID for multi-tree instances (requests use `/api/trees/{id}/...`) | No |
 
 ## Usage with Claude Desktop
 
@@ -40,7 +41,8 @@ Add the following to your Claude Desktop configuration file:
       "env": {
         "GRAMPS_API_URL": "https://your-gramps-web.com",
         "GRAMPS_USERNAME": "your-username",
-        "GRAMPS_PASSWORD": "your-password"
+        "GRAMPS_PASSWORD": "your-password",
+        "GRAMPS_TREE_ID": "optional-tree-id"
       }
     }
   }

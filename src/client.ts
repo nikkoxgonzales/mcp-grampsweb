@@ -21,7 +21,11 @@ class GrampsClient {
    * Initialize the client with configuration
    */
   initialize(config: Config): void {
-    this.baseUrl = `${config.apiUrl}/api`;
+    if (config.treeId) {
+      this.baseUrl = `${config.apiUrl}/api/trees/${config.treeId}`;
+    } else {
+      this.baseUrl = `${config.apiUrl}/api`;
+    }
   }
 
   /**

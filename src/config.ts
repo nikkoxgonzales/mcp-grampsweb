@@ -6,12 +6,14 @@ export interface Config {
   apiUrl: string;
   username: string;
   password: string;
+  treeId?: string;
 }
 
 export function loadConfig(): Config {
   const apiUrl = process.env.GRAMPS_API_URL;
   const username = process.env.GRAMPS_USERNAME;
   const password = process.env.GRAMPS_PASSWORD;
+  const treeId = process.env.GRAMPS_TREE_ID;
 
   const missing: string[] = [];
 
@@ -34,7 +36,8 @@ export function loadConfig(): Config {
 
   return {
     apiUrl: normalizedUrl,
-    username: username,
-    password: password,
+    username,
+    password,
+    treeId,
   };
 }
