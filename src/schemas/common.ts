@@ -46,7 +46,7 @@ export const surnameSchema = z.object({
 export const personNameSchema = z.object({
   _class: z.literal("Name").optional(),
   first_name: z.string().optional(),
-  call_name: z.string().optional().describe("Nickname or call name"),
+  nickname: z.string().optional().describe("Nickname (also known as call name)"),
   surname: z.string().optional().describe("Simple surname (use surname_list for multiple)"),
   surname_list: z.array(surnameSchema).optional().describe("List of surnames with origin types"),
   suffix: z.string().optional(),

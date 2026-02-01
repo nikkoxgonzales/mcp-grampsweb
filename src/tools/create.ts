@@ -34,6 +34,7 @@ function mapGender(gender?: string): number | undefined {
 }
 
 // Map a name object with proper class markers for surnames
+// Also maps nickname -> call_name for API compatibility
 function mapNameWithClasses(name: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!name) return undefined;
 
@@ -41,6 +42,12 @@ function mapNameWithClasses(name: Record<string, unknown> | undefined): Record<s
     _class: "Name",
     ...name,
   };
+
+  // Map nickname to call_name (API field name)
+  if (name.nickname) {
+    mapped.call_name = name.nickname;
+    delete mapped.nickname;
+  }
 
   // Map surname_list items with Surname class
   if (name.surname_list && Array.isArray(name.surname_list)) {
@@ -589,7 +596,7 @@ export const createTools = {
           description: "Primary name",
           properties: {
             first_name: { type: "string" },
-            call_name: { type: "string", description: "Nickname or call name" },
+            nickname: { type: "string", description: "Nickname (also known as call name)" },
             surname: { type: "string", description: "Simple surname" },
             surname_list: {
               type: "array",

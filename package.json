@@ -1,6 +1,6 @@
 {
   "name": "mcp-grampsweb",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "MCP server for Gramps Web genealogy API",
   "type": "module",
   "main": "./dist/index.js",

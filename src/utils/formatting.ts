@@ -27,8 +27,10 @@ export function formatPersonName(name?: PersonName): string {
 
   if (name.title) parts.push(name.title);
 
-  // Use call_name (nickname) if available, otherwise first_name
-  if (name.call_name) {
+  // Use nickname (or call_name from API) if available, otherwise first_name
+  if (name.nickname) {
+    parts.push(name.nickname);
+  } else if (name.call_name) {
     parts.push(name.call_name);
   } else if (name.first_name) {
     parts.push(name.first_name);

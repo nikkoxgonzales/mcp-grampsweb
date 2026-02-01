@@ -91,17 +91,28 @@ export async function grampsUpdatePerson(
 
   // Handle primary_name update
   if (updateFields.primary_name) {
-    updatedPerson.primary_name = { _class: "Name", ...updateFields.primary_name };
+    const nameData = { ...updateFields.primary_name } as Record<string, unknown>;
+    // Map nickname to call_name (API field name)
+    if (nameData.nickname) {
+      nameData.call_name = nameData.nickname;
+      delete nameData.nickname;
+    }
+    updatedPerson.primary_name = { _class: "Name", ...nameData };
   } else {
     updatedPerson.primary_name = existing.primary_name;
   }
 
   // Handle alternate_names update
   if (updateFields.alternate_names) {
-    updatedPerson.alternate_names = updateFields.alternate_names.map((n) => ({
-      _class: "Name",
-      ...n,
-    }));
+    updatedPerson.alternate_names = updateFields.alternate_names.map((n) => {
+      const nameData = { ...n } as Record<string, unknown>;
+      // Map nickname to call_name (API field name)
+      if (nameData.nickname) {
+        nameData.call_name = nameData.nickname;
+        delete nameData.nickname;
+      }
+      return { _class: "Name", ...nameData };
+    });
   } else {
     updatedPerson.alternate_names = existing.alternate_names;
   }
@@ -345,7 +356,7 @@ export const updateTools = {
           properties: {
             first_name: { type: "string" },
             surname: { type: "string" },
-            call_name: { type: "string", description: "Nickname/call name" },
+            nickname: { type: "string", description: "Nickname (also known as call name)" },
             suffix: { type: "string" },
             title: { type: "string" },
           },

@@ -49,7 +49,8 @@ export interface Surname {
 // Name structure for persons
 export interface PersonName {
   first_name?: string;
-  call_name?: string;
+  nickname?: string;
+  call_name?: string; // API field name for nickname
   surname?: string;
   surname_list?: Surname[];
   suffix?: string;
