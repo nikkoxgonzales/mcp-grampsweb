@@ -18,6 +18,21 @@ import type {
 } from "../types.js";
 
 /**
+ * Normalize dateval to ensure it has 4 elements: [day, month, year, slash_flag]
+ * Gramps API requires the 4th element (slash_flag) for slash dates like 1690/91.
+ * For normal dates, it should be 0 (false).
+ */
+export function normalizeDateval(dateval: number[] | undefined): number[] | undefined {
+  if (!dateval) return undefined;
+  // Ensure 4 elements: [day, month, year, slash_flag]
+  // Add 0 (false) as 4th element if missing
+  if (dateval.length === 3) {
+    return [...dateval, 0];
+  }
+  return dateval;
+}
+
+/**
  * Format a person name for display
  */
 export function formatPersonName(name?: PersonName): string {

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { grampsClient } from "../client.js";
 import { API_ENDPOINTS } from "../constants.js";
 import { formatToolResponse } from "../utils/response.js";
-import { formatPersonName } from "../utils/formatting.js";
+import { formatPersonName, normalizeDateval } from "../utils/formatting.js";
 import type { Family, Person, GrampsEntity, Event } from "../types.js";
 
 // Schema for adding a child to a family
@@ -138,11 +138,17 @@ export async function grampsSetPersonBirth(
   // Fetch the person first
   const person = await grampsClient.get<Person>(`${API_ENDPOINTS.PEOPLE}${person_handle}`);
 
+  // Normalize the date to ensure dateval has 4 elements
+  const normalizedDate = date ? {
+    ...date,
+    dateval: normalizeDateval(date.dateval),
+  } : undefined;
+
   // Create the birth event
   const event = {
     _class: "Event",
     type: "Birth",
-    date: date ? { _class: "Date", ...date } : undefined,
+    date: normalizedDate ? { _class: "Date", ...normalizedDate } : undefined,
     place: place_handle,
     description,
   };
@@ -227,11 +233,17 @@ export async function grampsSetPersonDeath(
   // Fetch the person first
   const person = await grampsClient.get<Person>(`${API_ENDPOINTS.PEOPLE}${person_handle}`);
 
+  // Normalize the date to ensure dateval has 4 elements
+  const normalizedDate = date ? {
+    ...date,
+    dateval: normalizeDateval(date.dateval),
+  } : undefined;
+
   // Create the death event
   const event = {
     _class: "Event",
     type: "Death",
-    date: date ? { _class: "Date", ...date } : undefined,
+    date: normalizedDate ? { _class: "Date", ...normalizedDate } : undefined,
     place: place_handle,
     description,
   };
@@ -365,7 +377,7 @@ export const convenienceTools = {
             dateval: {
               type: "array",
               items: { type: "number" },
-              description: "Date as [day, month, year] - use 0 for unknown parts (e.g., [0, 0, 1990] for just year)",
+              description: "Date as [day, month, year] or [day, month, year, false]. Use 0 for unknown parts (e.g., [0, 0, 1990] for just year)",
             },
             text: {
               type: "string",
@@ -408,7 +420,7 @@ export const convenienceTools = {
             dateval: {
               type: "array",
               items: { type: "number" },
-              description: "Date as [day, month, year] - use 0 for unknown parts (e.g., [0, 0, 1990] for just year)",
+              description: "Date as [day, month, year] or [day, month, year, false]. Use 0 for unknown parts (e.g., [0, 0, 1990] for just year)",
             },
             text: {
               type: "string",

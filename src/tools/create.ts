@@ -17,7 +17,7 @@ import {
   createRepositorySchema,
 } from "../schemas/entities.js";
 import { formatCreatedEntity } from "../utils/response.js";
-import { formatPersonName } from "../utils/formatting.js";
+import { formatPersonName, normalizeDateval } from "../utils/formatting.js";
 import type { GrampsEntity } from "../types.js";
 
 // Gender string to number mapping
@@ -214,11 +214,17 @@ export async function grampsCreateEvent(
 ): Promise<string> {
   const validated = createEventSchema.parse(params);
 
+  // Normalize the date to ensure dateval has 4 elements
+  const normalizedDate = validated.date ? {
+    ...validated.date,
+    dateval: normalizeDateval(validated.date.dateval),
+  } : undefined;
+
   const event = {
     _class: "Event",
     gramps_id: validated.gramps_id,
     type: validated.type,
-    date: validated.date ? { _class: "Date", ...validated.date } : undefined,
+    date: normalizedDate ? { _class: "Date", ...normalizedDate } : undefined,
     place: validated.place,
     description: validated.description,
     media_list: validated.media_list?.map((m) => ({ _class: "MediaRef", ...m })),
@@ -379,13 +385,19 @@ export async function grampsCreateCitation(
 ): Promise<string> {
   const validated = createCitationSchema.parse(params);
 
+  // Normalize the date to ensure dateval has 4 elements
+  const normalizedDate = validated.date ? {
+    ...validated.date,
+    dateval: normalizeDateval(validated.date.dateval),
+  } : undefined;
+
   const citation = {
     _class: "Citation",
     gramps_id: validated.gramps_id,
     source_handle: validated.source_handle,
     page: validated.page,
     confidence: validated.confidence,
-    date: validated.date ? { _class: "Date", ...validated.date } : undefined,
+    date: normalizedDate ? { _class: "Date", ...normalizedDate } : undefined,
     media_list: validated.media_list?.map((m) => ({ _class: "MediaRef", ...m })),
     note_list: validated.note_list,
     tag_list: validated.tag_list,
@@ -481,13 +493,19 @@ export async function grampsCreateMedia(
 ): Promise<string> {
   const validated = createMediaSchema.parse(params);
 
+  // Normalize the date to ensure dateval has 4 elements
+  const normalizedDate = validated.date ? {
+    ...validated.date,
+    dateval: normalizeDateval(validated.date.dateval),
+  } : undefined;
+
   const media = {
     _class: "Media",
     gramps_id: validated.gramps_id,
     path: validated.path,
     mime: validated.mime,
     desc: validated.desc,
-    date: validated.date ? { _class: "Date", ...validated.date } : undefined,
+    date: normalizedDate ? { _class: "Date", ...normalizedDate } : undefined,
     citation_list: validated.citation_list,
     note_list: validated.note_list,
     attribute_list: validated.attribute_list?.map((a) => ({
@@ -745,7 +763,7 @@ export const createTools = {
             dateval: {
               type: "array",
               items: { type: "number" },
-              description: "Date as [day, month, year]",
+              description: "Date as [day, month, year] or [day, month, year, false]. Use 0 for unknown parts.",
             },
             text: { type: "string", description: "Date as text" },
           },
