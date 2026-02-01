@@ -43,9 +43,10 @@ function mapNameWithClasses(name: Record<string, unknown> | undefined): Record<s
     ...name,
   };
 
-  // Map nickname to call_name (API field name)
+  // Map nickname to nick field (the actual nickname field in Gramps)
+  // Note: Gramps has two fields - "call_name" (shortened first name) and "nick" (nickname/alias)
   if (name.nickname) {
-    mapped.call_name = name.nickname;
+    mapped.nick = name.nickname;
     delete mapped.nickname;
   }
 
