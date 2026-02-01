@@ -16,6 +16,8 @@ import {
   createMediaSchema,
   createRepositorySchema,
 } from "../schemas/entities.js";
+import { formatCreatedEntity } from "../utils/response.js";
+import { formatPersonName } from "../utils/formatting.js";
 import type { GrampsEntity } from "../types.js";
 
 // Gender string to number mapping
@@ -72,7 +74,27 @@ export async function grampsCreatePerson(
     API_ENDPOINTS.PEOPLE,
     person
   );
-  return `Created person: ${response.gramps_id} (handle: ${response.handle})`;
+
+  const genderMap: Record<number, string> = {
+    0: "female",
+    1: "male",
+    2: "unknown",
+  };
+
+  const mappedGender = mapGender(validated.gender);
+  const genderStr = mappedGender !== undefined ? genderMap[mappedGender] : "unknown";
+
+  return formatCreatedEntity(
+    "person",
+    formatPersonName(validated.primary_name),
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      name: formatPersonName(validated.primary_name),
+      gender: genderStr,
+    },
+    `Use handle "${response.handle}" to link this person to families or events with gramps_create_family.`
+  );
 }
 
 /**
@@ -112,7 +134,27 @@ export async function grampsCreateFamily(
     API_ENDPOINTS.FAMILIES,
     family
   );
-  return `Created family: ${response.gramps_id} (handle: ${response.handle})`;
+
+  const members: string[] = [];
+  if (validated.father_handle) members.push("father");
+  if (validated.mother_handle) members.push("mother");
+  if (validated.child_ref_list?.length) members.push(`${validated.child_ref_list.length} child(ren)`);
+
+  return formatCreatedEntity(
+    "family",
+    response.gramps_id,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      father_handle: validated.father_handle || null,
+      mother_handle: validated.mother_handle || null,
+      children_count: validated.child_ref_list?.length || 0,
+      type: validated.type || "Unknown",
+    },
+    members.length > 0
+      ? `Family links ${members.join(", ")}. Add marriage/events with gramps_create_event.`
+      : "Add family members by updating with person handles."
+  );
 }
 
 /**
@@ -145,7 +187,20 @@ export async function grampsCreateEvent(
     API_ENDPOINTS.EVENTS,
     event
   );
-  return `Created event: ${response.gramps_id} (handle: ${response.handle})`;
+
+  return formatCreatedEntity(
+    "event",
+    `${validated.type} (${response.gramps_id})`,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      type: validated.type,
+      date: validated.date || null,
+      place_handle: validated.place || null,
+      description: validated.description || null,
+    },
+    `Link this event to a person or family using event_ref_list with handle "${response.handle}".`
+  );
 }
 
 /**
@@ -182,7 +237,21 @@ export async function grampsCreatePlace(
     API_ENDPOINTS.PLACES,
     place
   );
-  return `Created place: ${response.gramps_id} (handle: ${response.handle})`;
+
+  const placeName = validated.name?.value || validated.title || response.gramps_id;
+
+  return formatCreatedEntity(
+    "place",
+    placeName,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      name: placeName,
+      type: validated.place_type || null,
+      coordinates: validated.lat && validated.long ? { lat: validated.lat, long: validated.long } : null,
+    },
+    `Use handle "${response.handle}" when creating events to link them to this place.`
+  );
 }
 
 /**
@@ -214,7 +283,19 @@ export async function grampsCreateSource(
     API_ENDPOINTS.SOURCES,
     source
   );
-  return `Created source: ${response.gramps_id} (handle: ${response.handle})`;
+
+  return formatCreatedEntity(
+    "source",
+    validated.title,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      title: validated.title,
+      author: validated.author || null,
+      publication: validated.pubinfo || null,
+    },
+    `Create citations referencing this source with gramps_create_citation using source_handle "${response.handle}".`
+  );
 }
 
 /**
@@ -242,7 +323,27 @@ export async function grampsCreateCitation(
     API_ENDPOINTS.CITATIONS,
     citation
   );
-  return `Created citation: ${response.gramps_id} (handle: ${response.handle})`;
+
+  const confidenceMap: Record<number, string> = {
+    0: "Very Low",
+    1: "Low",
+    2: "Normal",
+    3: "High",
+    4: "Very High",
+  };
+
+  return formatCreatedEntity(
+    "citation",
+    response.gramps_id,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      source_handle: validated.source_handle,
+      page: validated.page || null,
+      confidence: validated.confidence !== undefined ? confidenceMap[validated.confidence] || "Normal" : "Normal",
+    },
+    `Add this citation to entities using citation_list with handle "${response.handle}".`
+  );
 }
 
 /**
@@ -267,7 +368,20 @@ export async function grampsCreateNote(
     API_ENDPOINTS.NOTES,
     note
   );
-  return `Created note: ${response.gramps_id} (handle: ${response.handle})`;
+
+  const preview = validated.text.length > 50 ? validated.text.substring(0, 50) + "..." : validated.text;
+
+  return formatCreatedEntity(
+    "note",
+    response.gramps_id,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      type: validated.type || "General",
+      preview,
+    },
+    `Attach this note to entities using note_list with handle "${response.handle}".`
+  );
 }
 
 /**
@@ -299,7 +413,21 @@ export async function grampsCreateMedia(
     API_ENDPOINTS.MEDIA,
     media
   );
-  return `Created media: ${response.gramps_id} (handle: ${response.handle})`;
+
+  const displayName = validated.desc || validated.path;
+
+  return formatCreatedEntity(
+    "media",
+    displayName,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      path: validated.path,
+      mime_type: validated.mime || null,
+      description: validated.desc || null,
+    },
+    `Link this media to entities using media_list with handle "${response.handle}".`
+  );
 }
 
 /**
@@ -329,7 +457,18 @@ export async function grampsCreateRepository(
     API_ENDPOINTS.REPOSITORIES,
     repository
   );
-  return `Created repository: ${response.gramps_id} (handle: ${response.handle})`;
+
+  return formatCreatedEntity(
+    "repository",
+    validated.name,
+    {
+      handle: response.handle,
+      gramps_id: response.gramps_id,
+      name: validated.name,
+      type: validated.type || null,
+    },
+    `Link sources to this repository using reporef_list with handle "${response.handle}".`
+  );
 }
 
 // Tool definitions for MCP
@@ -337,8 +476,10 @@ export const createTools = {
   gramps_create_person: {
     name: "gramps_create_person",
     description:
-      "Create a new person record in Gramps. " +
-      "Provide name information and optionally gender, events, family links, etc.",
+      "Create a new person record. " +
+      "REQUIRED: primary_name with first_name or surname. " +
+      "RETURNS: handle (for linking) and gramps_id (display ID). " +
+      "NEXT STEP: Use handle with gramps_create_family to add relationships.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -374,8 +515,10 @@ export const createTools = {
   gramps_create_family: {
     name: "gramps_create_family",
     description:
-      "Create a new family record in Gramps. " +
-      "Link father, mother, and children by their person handles.",
+      "Create a family linking parents and children. " +
+      "USE FOR: Connecting existing people into family relationships. " +
+      "REQUIRED: At least one of father_handle, mother_handle, or child_ref_list. " +
+      "NEXT STEP: Add marriage event with gramps_create_event.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -417,8 +560,10 @@ export const createTools = {
   gramps_create_event: {
     name: "gramps_create_event",
     description:
-      "Create a new event record in Gramps. " +
-      "Events include births, deaths, marriages, baptisms, etc.",
+      "Create a life event (Birth, Death, Marriage, Burial, Baptism, etc.). " +
+      "REQUIRED: type (event type string). " +
+      "OPTIONAL: date, place handle, description. " +
+      "NEXT STEP: Link to person/family via their event_ref_list.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -459,8 +604,10 @@ export const createTools = {
   gramps_create_place: {
     name: "gramps_create_place",
     description:
-      "Create a new place record in Gramps. " +
-      "Places can be cities, countries, addresses, cemeteries, etc.",
+      "Create a location (city, country, address, cemetery, etc.). " +
+      "OPTIONAL: title, name, coordinates (lat/long), place_type. " +
+      "USE FOR: Linking to events via place handle. " +
+      "RETURNS: handle to use when creating events.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -500,8 +647,10 @@ export const createTools = {
   gramps_create_source: {
     name: "gramps_create_source",
     description:
-      "Create a new source record in Gramps. " +
-      "Sources document where genealogical information comes from.",
+      "Create a source documenting where information comes from (books, websites, records). " +
+      "REQUIRED: title. " +
+      "OPTIONAL: author, pubinfo, abbrev. " +
+      "NEXT STEP: Create citations referencing this source.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -534,8 +683,10 @@ export const createTools = {
   gramps_create_citation: {
     name: "gramps_create_citation",
     description:
-      "Create a new citation record in Gramps. " +
-      "Citations reference specific parts of sources.",
+      "Create a citation pointing to a specific location within a source. " +
+      "REQUIRED: source_handle (from gramps_create_source). " +
+      "OPTIONAL: page, confidence level. " +
+      "USE FOR: Attaching proof to facts via entity citation_list.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -564,8 +715,10 @@ export const createTools = {
   gramps_create_note: {
     name: "gramps_create_note",
     description:
-      "Create a new note in Gramps. " +
-      "Notes contain textual information that can be attached to other records.",
+      "Create a text note that can be attached to any entity. " +
+      "REQUIRED: text content. " +
+      "OPTIONAL: type (General, Research, Transcript), format. " +
+      "USE FOR: Adding research notes, transcripts, or comments to records.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -594,8 +747,10 @@ export const createTools = {
   gramps_create_media: {
     name: "gramps_create_media",
     description:
-      "Create a new media object in Gramps. " +
-      "Media includes photos, documents, audio, video files.",
+      "Create a media object reference (photo, document, audio, video). " +
+      "REQUIRED: path (file path or URL). " +
+      "OPTIONAL: mime type, description. " +
+      "USE FOR: Attaching images/documents to people, events, etc.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -624,8 +779,10 @@ export const createTools = {
   gramps_create_repository: {
     name: "gramps_create_repository",
     description:
-      "Create a new repository in Gramps. " +
-      "Repositories are places where sources are stored (libraries, archives, websites).",
+      "Create a repository where sources are stored (library, archive, website). " +
+      "REQUIRED: name. " +
+      "OPTIONAL: type (Library, Archive, Website). " +
+      "USE FOR: Organizing sources by their holding institution.",
     inputSchema: {
       type: "object" as const,
       properties: {

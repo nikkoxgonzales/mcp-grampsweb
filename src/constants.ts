@@ -58,3 +58,19 @@ export const TOKEN_EXPIRY_BUFFER_MS = 30 * 1000;
 
 // Default request timeout
 export const DEFAULT_TIMEOUT_MS = 30 * 1000;
+
+// Standardized messages for consistent LLM feedback
+export const MESSAGES = {
+  NO_RESULTS: (type: string, query: string) =>
+    `No ${type} found matching "${query}". Try broader search terms or check for typos.`,
+
+  NOT_FOUND: (type: string, id: string) =>
+    `${type} "${id}" not found. Verify the handle using gramps_find first.`,
+
+  CREATED: (type: string, id: string, handle: string) =>
+    `Created ${type} ${id}. Use handle "${handle}" for relationships.`,
+
+  EMPTY_TREE: "The family tree is empty. Use create tools to add records.",
+
+  SEARCH_HINT: "Use gramps_search with GQL for structured queries, or gramps_find for full-text search.",
+};

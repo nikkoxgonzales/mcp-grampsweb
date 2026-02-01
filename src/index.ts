@@ -12,6 +12,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   type Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 
@@ -19,6 +21,7 @@ import { loadConfig } from "./config.js";
 import { authManager } from "./auth.js";
 import { grampsClient } from "./client.js";
 import { allTools } from "./tools/index.js";
+import { grampsPrompts } from "./prompts/index.js";
 import { formatErrorForMCP } from "./utils/errors.js";
 
 // Logger that writes to stderr (stdout is for MCP JSON-RPC)
@@ -67,6 +70,7 @@ async function main() {
     {
       capabilities: {
         tools: {},
+        prompts: {},
       },
     }
   );
@@ -80,6 +84,37 @@ async function main() {
     }));
 
     return { tools };
+  });
+
+  // Register prompts list handler
+  server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    const prompts = Object.values(grampsPrompts).map((prompt) => ({
+      name: prompt.name,
+      description: prompt.description,
+      arguments: prompt.arguments,
+    }));
+
+    return { prompts };
+  });
+
+  // Register get prompt handler
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const promptName = request.params.name;
+    const prompt = grampsPrompts[promptName];
+
+    if (!prompt) {
+      throw new Error(`Unknown prompt: ${promptName}`);
+    }
+
+    const args = request.params.arguments as Record<string, string> | undefined;
+    const messages = prompt.getMessages(args);
+
+    return {
+      messages: messages.map((m) => ({
+        role: m.role,
+        content: { type: "text" as const, text: m.content },
+      })),
+    };
   });
 
   // Register tool call handler

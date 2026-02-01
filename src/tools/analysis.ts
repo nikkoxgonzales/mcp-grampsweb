@@ -4,8 +4,9 @@
 
 import { z } from "zod";
 import { grampsClient } from "../client.js";
-import { API_ENDPOINTS } from "../constants.js";
+import { API_ENDPOINTS, MESSAGES } from "../constants.js";
 import { formatPersonName, formatDate } from "../utils/formatting.js";
+import { formatToolResponse } from "../utils/response.js";
 import type { Person, Family, Event, GrampsEntity, TreeStats } from "../types.js";
 
 // Schema for ancestor/descendant queries
@@ -87,21 +88,34 @@ export async function grampsTreeStats(): Promise<string> {
     }
   }
 
-  const lines = [
-    "Family Tree Statistics:",
-    "",
-    `  People:       ${stats.people.toLocaleString()}`,
-    `  Families:     ${stats.families.toLocaleString()}`,
-    `  Events:       ${stats.events.toLocaleString()}`,
-    `  Places:       ${stats.places.toLocaleString()}`,
-    `  Sources:      ${stats.sources.toLocaleString()}`,
-    `  Citations:    ${stats.citations.toLocaleString()}`,
-    `  Repositories: ${stats.repositories.toLocaleString()}`,
-    `  Media:        ${stats.media.toLocaleString()}`,
-    `  Notes:        ${stats.notes.toLocaleString()}`,
-  ];
+  const totalRecords = Object.values(stats).reduce((a, b) => a + b, 0);
 
-  return lines.join("\n");
+  if (totalRecords === 0) {
+    return formatToolResponse({
+      status: "empty",
+      summary: MESSAGES.EMPTY_TREE,
+      details: "Use gramps_create_person to add your first family member.",
+    });
+  }
+
+  return formatToolResponse({
+    status: "success",
+    summary: `Family tree contains ${totalRecords.toLocaleString()} total records`,
+    data: {
+      people: stats.people,
+      families: stats.families,
+      events: stats.events,
+      places: stats.places,
+      sources: stats.sources,
+      citations: stats.citations,
+      repositories: stats.repositories,
+      media: stats.media,
+      notes: stats.notes,
+    },
+    details: stats.people > 0
+      ? "Use gramps_search or gramps_find to explore specific records."
+      : undefined,
+  });
 }
 
 /**
@@ -181,10 +195,12 @@ export async function grampsGetAncestors(
 
   // Format output
   if (ancestors.length === 0) {
-    return "No ancestors found.";
+    return formatToolResponse({
+      status: "empty",
+      summary: "No ancestors found for this person",
+      details: "The person may not have parent family links. Check the person's parent_family_list.",
+    });
   }
-
-  const lines = [`Found ${ancestors.length} ancestor(s) up to ${generations} generation(s):`, ""];
 
   // Group by generation
   const byGen = new Map<number, typeof ancestors>();
@@ -195,20 +211,29 @@ export async function grampsGetAncestors(
     byGen.get(a.generation)!.push(a);
   }
 
+  const generationsData: Record<string, Array<{ relationship: string; name: string; gramps_id: string; handle: string }>> = {};
   for (let g = 0; g <= generations; g++) {
     const genAncestors = byGen.get(g);
     if (genAncestors && genAncestors.length > 0) {
-      lines.push(`Generation ${g}:`);
-      for (const a of genAncestors) {
-        lines.push(
-          `  ${a.relationship}: ${formatPersonName(a.person.primary_name)} (${a.person.gramps_id})`
-        );
-      }
-      lines.push("");
+      generationsData[`generation_${g}`] = genAncestors.map((a) => ({
+        relationship: a.relationship,
+        name: formatPersonName(a.person.primary_name),
+        gramps_id: a.person.gramps_id,
+        handle: a.person.handle,
+      }));
     }
   }
 
-  return lines.join("\n");
+  return formatToolResponse({
+    status: "success",
+    summary: `Found ${ancestors.length} ancestor(s) across ${generations} generation(s)`,
+    data: {
+      total_count: ancestors.length,
+      generations_retrieved: generations,
+      ancestors: generationsData,
+    },
+    details: "Use handles with gramps_get to retrieve full details of any ancestor.",
+  });
 }
 
 /**
@@ -282,13 +307,12 @@ export async function grampsGetDescendants(
 
   // Format output
   if (descendants.length === 0) {
-    return "No descendants found.";
+    return formatToolResponse({
+      status: "empty",
+      summary: "No descendants found for this person",
+      details: "The person may not have family links. Check the person's family_list.",
+    });
   }
-
-  const lines = [
-    `Found ${descendants.length} descendant(s) up to ${generations} generation(s):`,
-    "",
-  ];
 
   // Group by generation
   const byGen = new Map<number, typeof descendants>();
@@ -299,20 +323,29 @@ export async function grampsGetDescendants(
     byGen.get(d.generation)!.push(d);
   }
 
+  const generationsData: Record<string, Array<{ relationship: string; name: string; gramps_id: string; handle: string }>> = {};
   for (let g = 0; g <= generations; g++) {
     const genDescendants = byGen.get(g);
     if (genDescendants && genDescendants.length > 0) {
-      lines.push(`Generation ${g}:`);
-      for (const d of genDescendants) {
-        lines.push(
-          `  ${d.relationship}: ${formatPersonName(d.person.primary_name)} (${d.person.gramps_id})`
-        );
-      }
-      lines.push("");
+      generationsData[`generation_${g}`] = genDescendants.map((d) => ({
+        relationship: d.relationship,
+        name: formatPersonName(d.person.primary_name),
+        gramps_id: d.person.gramps_id,
+        handle: d.person.handle,
+      }));
     }
   }
 
-  return lines.join("\n");
+  return formatToolResponse({
+    status: "success",
+    summary: `Found ${descendants.length} descendant(s) across ${generations} generation(s)`,
+    data: {
+      total_count: descendants.length,
+      generations_retrieved: generations,
+      descendants: generationsData,
+    },
+    details: "Use handles with gramps_get to retrieve full details of any descendant.",
+  });
 }
 
 /**
@@ -338,19 +371,33 @@ export async function grampsRecentChanges(
     });
 
     if (!response || response.length === 0) {
-      return "No recent changes found.";
+      return formatToolResponse({
+        status: "empty",
+        summary: "No recent changes found",
+        details: "The tree may be new or have no activity tracking.",
+      });
     }
 
-    const lines = [`Recent Changes (page ${page}):`, ""];
-
-    for (const change of response) {
+    const changes = response.map((change) => {
       const date = new Date(change.change * 1000);
-      const dateStr = date.toISOString().replace("T", " ").substring(0, 19);
+      return {
+        timestamp: date.toISOString(),
+        type: change.object_type,
+        gramps_id: change.gramps_id,
+        handle: change.handle,
+      };
+    });
 
-      lines.push(`[${dateStr}] ${change.object_type}: ${change.gramps_id}`);
-    }
-
-    return lines.join("\n");
+    return formatToolResponse({
+      status: "success",
+      summary: `Found ${changes.length} recent change(s)`,
+      data: {
+        page,
+        count: changes.length,
+        changes,
+      },
+      details: "Use handles with gramps_get to see full details of changed records.",
+    });
   } catch {
     // Fallback: try fetching from each entity type and sorting by change time
     const allEntities: Array<{
@@ -388,19 +435,33 @@ export async function grampsRecentChanges(
     const topEntities = allEntities.slice(0, pagesize);
 
     if (topEntities.length === 0) {
-      return "No recent changes found.";
+      return formatToolResponse({
+        status: "empty",
+        summary: "No recent changes found",
+        details: "The tree may be new or have no activity tracking.",
+      });
     }
 
-    const lines = [`Recent Changes (page ${page}):`, ""];
-
-    for (const item of topEntities) {
+    const changes = topEntities.map((item) => {
       const date = new Date(item.change * 1000);
-      const dateStr = date.toISOString().replace("T", " ").substring(0, 19);
+      return {
+        timestamp: date.toISOString(),
+        type: item.type,
+        gramps_id: item.entity.gramps_id,
+        handle: item.entity.handle,
+      };
+    });
 
-      lines.push(`[${dateStr}] ${item.type}: ${item.entity.gramps_id}`);
-    }
-
-    return lines.join("\n");
+    return formatToolResponse({
+      status: "success",
+      summary: `Found ${changes.length} recent change(s)`,
+      data: {
+        page,
+        count: changes.length,
+        changes,
+      },
+      details: "Use handles with gramps_get to see full details of changed records.",
+    });
   }
 }
 
@@ -409,8 +470,10 @@ export const analysisTools = {
   gramps_tree_stats: {
     name: "gramps_tree_stats",
     description:
-      "Get statistics about the family tree including counts of people, " +
-      "families, events, places, sources, and other record types.",
+      "Get database overview with record counts by type. " +
+      "USE FOR: Understanding tree size, checking if data exists. " +
+      "RETURNS: Counts of people, families, events, places, sources, etc. " +
+      "START HERE: Good first call to understand the tree before searching.",
     inputSchema: {
       type: "object" as const,
       properties: {},
@@ -422,8 +485,10 @@ export const analysisTools = {
   gramps_get_ancestors: {
     name: "gramps_get_ancestors",
     description:
-      "Find ancestors of a person going back a specified number of generations. " +
-      "Returns parents, grandparents, great-grandparents, etc.",
+      "Traverse ancestry tree upward from a person. " +
+      "REQUIRED: handle of starting person (from search results). " +
+      "OPTIONAL: generations (1-10, default 3). " +
+      "RETURNS: Parents, grandparents, great-grandparents with handles.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -445,8 +510,10 @@ export const analysisTools = {
   gramps_get_descendants: {
     name: "gramps_get_descendants",
     description:
-      "Find descendants of a person going forward a specified number of generations. " +
-      "Returns children, grandchildren, great-grandchildren, etc.",
+      "Traverse descendant tree downward from a person. " +
+      "REQUIRED: handle of starting person (from search results). " +
+      "OPTIONAL: generations (1-10, default 3). " +
+      "RETURNS: Children, grandchildren, great-grandchildren with handles.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -468,8 +535,10 @@ export const analysisTools = {
   gramps_recent_changes: {
     name: "gramps_recent_changes",
     description:
-      "Get recently modified records in the family tree. " +
-      "Useful for seeing what has been updated or added recently.",
+      "List recently added or modified records. " +
+      "USE FOR: Seeing latest tree activity, finding newly added records. " +
+      "OPTIONAL: page, pagesize for pagination. " +
+      "RETURNS: Timestamped list of changes with handles.",
     inputSchema: {
       type: "object" as const,
       properties: {
